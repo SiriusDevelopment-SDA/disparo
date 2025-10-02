@@ -1416,7 +1416,7 @@ document.addEventListener("DOMContentLoaded", () => {
                   row = document.createElement("tr");
                   tbody.appendChild(row);
                 }
-                const cell = document.createElement("td");
+                const cell = document.createElement("td").setAttribute("id", "row_numeros");
                 cell.textContent = numero;
                 cell.style.cssText = `
                         padding:2px 4px;
@@ -1445,12 +1445,15 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       // Enviar campanha
-      function enviarCampanha() {
+async function enviarCampanha() {
   const template = document.getElementById("templateDropdown").value;
   const numero = document.getElementById("numero").value;
+  const numeros = document.getElementById("row_numeros").value;
   const nome = document.getElementById("buscarContato").value;
+  const account = "3";
+  const selectNunmbers = numero ? numero : numeros;
 
-  if (!template || !numero) {
+  if (!template || !selectNunmbers) {
     showNotification(
       "Por favor, preencha todos os campos obrigatórios",
       "error"
@@ -1464,11 +1467,27 @@ document.addEventListener("DOMContentLoaded", () => {
     numero: numero,
     timestamp: new Date().toISOString(),
     provedor: true,
+    account: account,
   };
 
-  console.log("Dados enviados para n8n/Chatwoot:", dadosCampanha);
-  showNotification("Campanha enviada com sucesso!", "success");
-  limparFormulario();
+  try {
+      const response = await fetch("https://webhooks.coraxy.com.br/webhook/disparo_especifico",
+        {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(dadosCampanha)
+        }
+      );
+      const data = await response.json();
+    
+    return data;
+} catch (error) {
+    console.error("Erro ao carregar total de clientes:", error);
+} finally {
+    console.log("Dados enviados para n8n/Chatwoot:", dadosCampanha);
+    showNotification("Campanha enviada com sucesso!", "success");
+    limparFormulario();
+  } 
 }
 
 
