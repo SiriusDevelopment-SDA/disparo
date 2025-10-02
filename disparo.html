@@ -1395,65 +1395,98 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
 
-      // Processar arquivo
-      function processFile(input) {
-        const file = input.files[0];
-        if (
-          file &&
-          (file.type === "text/plain" || file.name.endsWith(".csv"))
-        ) {
-          const reader = new FileReader();
-          const tabela = document.getElementById("tabelaNumeros");
-          const tbody = tabela.querySelector("tbody");
-          tbody.innerHTML = ""; // limpa antes de preencher
+  function processFile(input) {
+  const file = input.files[0];
+  const tabela = document.getElementById("tabelaNumeros");
+  const tbody = tabela.querySelector("tbody");
 
-          reader.onload = function (e) {
-            const content = e.target.result;
-            const numeros = content
-              .split(/\r?\n/)
-              .filter((linha) => linha.trim());
+  // 🔁 limpa sempre antes de começar
+  tbody.innerHTML = "";
+  tabela.style.display = "none";
 
-            if (numeros.length > 0) {
-              tabela.style.display = "table"; // só mostra se tiver número
-              showNotification(
-                `Arquivo processado: ${numeros.length} números encontrados`,
-                "success"
-              );
+  if (!file || !(file.type === "text/plain" || /\.csv$/i.test(file.name))) {
+    showNotification("Por favor, selecione um arquivo TXT ou CSV válido", "error");
+    if (input) input.value = "";
+    return;
+  }
 
-              let row;
-              numeros.forEach((numero, index) => {
-                if (index % 5 === 0) {
-                  // quebra a cada 5 números
-                  row = document.createElement("tr");
-                  tbody.appendChild(row);
-                }
-                const cell = document.createElement("td");
-                cell.textContent = numero;
-                cell.style.cssText = `
-                        padding:2px 4px;
-                        border:1px solid #444;
-                        color:#fff;
-                        text-align:center;
-                        border-radius:4px;
-                    `;
-                row.appendChild(cell);
-              });
-            } else {
-              tabela.style.display = "none"; // esconde se não houver números
-              showNotification(
-                "Nenhum número válido encontrado no arquivo",
-                "warning"
-              );
-            }
-          };
-          reader.readAsText(file);
-        } else {
-          showNotification(
-            "Por favor, selecione um arquivo TXT ou CSV válido",
-            "error"
-          );
+  const reader = new FileReader();
+
+  reader.onload = function (e) {
+    const raw = e.target.result || "";
+    const linhas = raw.split(/\r?\n/);
+
+    const validos = [];
+    let invalidos = 0;
+
+    linhas.forEach((linha) => {
+      if (!linha) return;
+
+      // mantém só dígitos da linha
+      const digitos = linha.replace(/\D/g, "");
+
+      if (!digitos) return;
+
+      if (digitos.length === 11) {
+        // ✔️ exatamente 11
+        validos.push(digitos);
+      } else if (digitos.length > 11) {
+        // pode haver números colados
+        const blocosCompletos = Math.floor(digitos.length / 11);
+        const resto = digitos.length % 11;
+
+        // adiciona cada bloco de 11 como um número separado
+        for (let i = 0; i < blocosCompletos; i++) {
+          validos.push(digitos.slice(i * 11, i * 11 + 11));
         }
+
+        // se sobrou algo (<11), conta como inválido
+        if (resto > 0) invalidos += 1;
+      } else {
+        // < 11 dígitos → inválido
+        invalidos += 1;
       }
+    });
+
+    if (validos.length > 0) {
+      tabela.style.display = "table";
+
+      let row;
+      validos.forEach((numero, index) => {
+        if (index % 5 === 0) {
+          row = document.createElement("tr");
+          tbody.appendChild(row);
+        }
+        const cell = document.createElement("td");
+        cell.textContent = numero;
+        cell.style.cssText = `
+          padding: 2px 4px;
+          border: 1px solid #444;
+          color: #fff;
+          text-align: center;
+          border-radius: 4px;
+        `;
+        row.appendChild(cell);
+      });
+
+      showNotification(
+        `Arquivo processado: ${validos.length} contatos encontrados ✅ • ${invalidos} inválidos descartados ❌`,
+        invalidos ? "warning" : "success"
+      );
+    } else {
+      showNotification("Nenhum número válido encontrado no arquivo", "warning");
+    }
+  };
+
+  reader.readAsText(file);
+
+  // permite reimportar o mesmo arquivo e força o onchange
+  input.value = "";
+}
+
+
+
+
 
       // Enviar campanha
       function enviarCampanha() {
@@ -1623,18 +1656,21 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       // Mostrar notificação
-     function showNotification(message, type) {
+     function showNotification(message) {
   const notification = document.getElementById("notification");
+
+  notification.classList.remove("show", "success", "error", "warning");
+  notification.classList.add("notification", "success", "show");
+
   notification.textContent = message;
-  notification.className = `notification ${type} show`;
 
   setTimeout(() => {
-    notification.classList.remove("show"); // aplica o fade out
-    setTimeout(() => {
-      notification.textContent = ""; // limpa o conteúdo
-    }, 600); // tempo do fade
-  }, 10000); // fica 10s visível
+    notification.classList.remove("show");
+  }, 10000);
 }
+
+
+
 
 async function carregarTotalClientes() {
   try {
@@ -1672,9 +1708,10 @@ async function pausarOuReativarCampanha(id, concluida) {
     console.log("Resposta do update:", result);
 
     showNotification(
-      `Campanha ${concluidaBool ? "finalizada" : "reativada"} com sucesso!`,
-      "success"
-    );
+  `📊 Total encontrados: ${totalEncontrados} • ✅ Identificados: ${totalValidos} • ❌ Descartados: ${invalidos}`,
+  "success" // 🔥 força sempre verde
+);
+
 
     await carregarCampanhas(); // recarrega tabela
 
