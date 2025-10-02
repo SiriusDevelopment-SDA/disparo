@@ -209,6 +209,13 @@
         padding: 20px;
       }
 
+      .vencidos-header{
+         display: flex;
+         justify-content: space-between;
+         align-items: center;   
+         margin-bottom: 20px; 
+      }
+
       .vencidos-section h3::before {
         content: "⚠️";
       }
@@ -907,9 +914,11 @@ function updateDropdownPreview() {
 
       <div id="vencidos" class="tab-content">
         <div class="vencidos-section">
-          <h3>Buscar Clientes Vencidos</h3>
-          <button class="btn-small btn-criarCampanha" onclick="criarCampanha('${camp.id}')">Criar Campanha</button>
-          
+          <div class="vencidos-header">
+            <h3>Buscar Clientes Vencidos</h3>
+            <button class="btn-small btn-report" onclick="criarCampanha('${camp.id}')">Criar Campanha</button>
+          </div>
+
           <div class="form-row">
             
             <div class="form-group">
