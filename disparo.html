@@ -774,6 +774,12 @@
 </div>
 
 <script>
+
+   // 👇 Pega o account dinamicamente da URL
+  const url = new URL(window.location.href);
+  const account = url.searchParams.get("account") || "0"; // fallback
+
+  console.log("Account logado:", account);
 // let dropdownTemplatesCache = []; // cache exclusivo do dropdown
 
 async function carregarTemplatesDropdown() {
