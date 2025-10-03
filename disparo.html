@@ -364,6 +364,7 @@
       font-size: 20px;
     }
 
+
     .modal {
       overflow: auto !important;
     }
@@ -804,6 +805,12 @@
             </div>
 
             <script>
+
+              // 👇 Pega o account dinamicamente da URL
+              const url = new URL(window.location.href);
+              const account = url.searchParams.get("account") || "0"; // fallback
+
+              console.log("Account logado:", account);
               // let dropdownTemplatesCache = []; // cache exclusivo do dropdown
 
               async function carregarTemplatesDropdown() {
@@ -828,6 +835,8 @@
                   console.error("Erro ao carregar templates no dropdown:", err);
                 }
               }
+
+
 
               function updateDropdownPreview() {
                 const select = document.getElementById("templateDropdown");
@@ -915,10 +924,9 @@
             <thead>
               <tr>
                 <th>Campanha</th>
-                <th>Template</th>
+                <th>Tipo</th>
                 <th>Empresa</th>
                 <th>Status</th>
-                <th>Data de disparo</th>
                 <th>Enviados</th>
                 <th>Taxa Entrega</th>
                 <th>Ações</th>
@@ -956,13 +964,6 @@
           <button class="btn-primary" onclick="salvarEdicao()">Salvar Alterações</button>
         </div>
       </div>
-
-
-
-
-
-
-
     </div>
 
     <div id="vencidos" class="tab-content">
@@ -1070,34 +1071,8 @@
               <th>Valor Cobrado</th>
             </tr>
           </thead>
-          <tbody>
-            <tr>
-              <td>15/12/2024 14:30</td>
-              <td>João Silva</td>
-              <td>+55 11 99999-9999</td>
-              <td>Cobrança Amigável</td>
-              <td><span class="status ativa">Entregue</span></td>
-              <td>Sim</td>
-              <td>R$ 89,90</td>
-            </tr>
-            <tr>
-              <td>15/12/2024 14:29</td>
-              <td>Maria Santos</td>
-              <td>+55 11 88888-8888</td>
-              <td>Promoção Fibra</td>
-              <td><span class="status ativa">Entregue</span></td>
-              <td>Não</td>
-              <td>-</td>
-            </tr>
-            <tr>
-              <td>15/12/2024 14:25</td>
-              <td>Pedro Costa</td>
-              <td>+55 11 77777-7777</td>
-              <td>Cobrança Urgente</td>
-              <td><span class="status ativa">Entregue</span></td>
-              <td>Sim</td>
-              <td>R$ 156,80</td>
-            </tr>
+          <tbody id="historicoTable">
+            <!-- Os templates serão carregados dinamicamente -->
           </tbody>
         </table>
       </div>
@@ -1439,282 +1414,109 @@
       }
     }
 
-    // Processar arquivo
     function processFile(input) {
       const file = input.files[0];
-      if (
-        file &&
-        (file.type === "text/plain" || file.name.endsWith(".csv"))
-      ) {
-        const reader = new FileReader();
-        const tabela = document.getElementById("tabelaNumeros");
-        const tbody = tabela.querySelector("tbody");
-        tbody.innerHTML = ""; // limpa antes de preencher
+      const tabela = document.getElementById("tabelaNumeros");
+      const tbody = tabela.querySelector("tbody");
 
-        reader.onload = function (e) {
-          const content = e.target.result;
-          const numeros = content
-            .split(/\r?\n/)
-            .filter((linha) => linha.trim());
+      // 🔁 limpa sempre antes de começar
+      tbody.innerHTML = "";
+      tabela.style.display = "none";
 
-          if (numeros.length > 0) {
-            tabela.style.display = "table"; // só mostra se tiver número
-            showNotification(
-              `Arquivo processado: ${numeros.length} números encontrados`,
-              "success"
-            );
-
-<<<<<<< HEAD
-        if (template && templates[template]) {
-          let mensagem = templates[template];
-
-          // Encontrar cliente pelo número
-          const cliente = clientes.find((c) => c.numero === numero);
-          const nome = cliente ? cliente.nome : "Cliente";
-          const plano = cliente ? cliente.plano : "Seu Plano";
-          const valor = cliente
-            ? (Number(cliente.valor) || 0).toFixed(2)
-            : "0,00";
-
-          mensagem = mensagem.replace(/{{nome}}/g, nome);
-          mensagem = mensagem.replace(/{{plano}}/g, plano);
-          mensagem = mensagem.replace(/{{valor}}/g, valor);
-
-          preview.textContent = mensagem;
-        } else {
-          preview.textContent =
-            "Selecione um template para visualizar a mensagem";
-        }
+      if (!file || !(file.type === "text/plain" || /\.csv$/i.test(file.name))) {
+        showNotification("Por favor, selecione um arquivo TXT ou CSV válido", "error");
+        if (input) input.value = "";
+        return;
       }
 
-      // Processar arquivo
-      function processFile(input) {
-        const file = input.files[0];
-        if (
-          file &&
-          (file.type === "text/plain" || file.name.endsWith(".csv"))
-        ) {
-          const reader = new FileReader();
-          const tabela = document.getElementById("tabelaNumeros");
-          const tbody = tabela.querySelector("tbody");
-          tbody.innerHTML = ""; // limpa antes de preencher
+      const reader = new FileReader();
 
-          reader.onload = function (e) {
-            const content = e.target.result;
-            const numeros = content
-              .split(/\r?\n/)
-              .filter((linha) => linha.trim());
+      reader.onload = function (e) {
+        const raw = e.target.result || "";
+        const linhas = raw.split(/\r?\n/);
 
-            if (numeros.length > 0) {
-              tabela.style.display = "table"; // só mostra se tiver número
-              showNotification(
-                `Arquivo processado: ${numeros.length} números encontrados`,
-                "success"
-              );
+        const validos = [];
+        let invalidos = 0;
 
-              let row;
-              numeros.forEach((numero, index) => {
-                if (index % 5 === 0) {
-                  // quebra a cada 5 números
-                  row = document.createElement("tr");
-                  tbody.appendChild(row);
-                }
-                const cell = document.createElement("td").setAttribute("id", "row_numeros");
-                cell.textContent = numero;
-                cell.style.cssText = `
-=======
-            let row;
-            numeros.forEach((numero, index) => {
-              if (index % 5 === 0) {
-                // quebra a cada 5 números
-                row = document.createElement("tr");
-                tbody.appendChild(row);
-              }
-              const cell = document.createElement("td");
-              cell.textContent = numero;
-              cell.style.cssText = `
->>>>>>> 027f8b3b3dcfb054901b15858509bc4f3c84ab3a
-                        padding:2px 4px;
-                        border:1px solid #444;
-                        color:#fff;
-                        text-align:center;
-                        border-radius:4px;
-                    `;
-<<<<<<< HEAD
-                row.appendChild(cell);
-              });
-            } else {
-              tabela.style.display = "none"; // esconde se não houver números
-              showNotification(
-                "Nenhum número válido encontrado no arquivo",
-                "warning"
-              );
+        linhas.forEach((linha) => {
+          if (!linha) return;
+
+          // mantém só dígitos da linha
+          const digitos = linha.replace(/\D/g, "");
+
+          if (!digitos) return;
+
+          if (digitos.length === 11) {
+            // ✔️ exatamente 11
+            validos.push(digitos);
+          } else if (digitos.length > 11) {
+            // pode haver números colados
+            const blocosCompletos = Math.floor(digitos.length / 11);
+            const resto = digitos.length % 11;
+
+            // adiciona cada bloco de 11 como um número separado
+            for (let i = 0; i < blocosCompletos; i++) {
+              validos.push(digitos.slice(i * 11, i * 11 + 11));
             }
-          };
-          reader.readAsText(file);
-        } else {
-          showNotification(
-            "Por favor, selecione um arquivo TXT ou CSV válido",
-            "error"
-          );
-        }
-      }
 
-      // Enviar campanha
-async function enviarCampanha() {
-  const template = document.getElementById("templateDropdown").value;
-  const numero = document.getElementById("numero").value;
-  const numeros = document.getElementById("row_numeros").value;
-  const nome = document.getElementById("buscarContato").value;
-  const account = "3";
-  const selectNunmbers = numero ? numero : numeros;
-
-  if (!template || !selectNunmbers) {
-    showNotification(
-      "Por favor, preencha todos os campos obrigatórios",
-      "error"
-    );
-    return;
-  }
-
-  const dadosCampanha = {
-    tipo: "envio_imediato",
-    template: template,
-    numero: numero,
-    timestamp: new Date().toISOString(),
-    provedor: true,
-    account: account,
-  };
-
-  try {
-      const response = await fetch("https://webhooks.coraxy.com.br/webhook/disparo_especifico",
-        {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(dadosCampanha)
-        }
-      );
-      const data = await response.json();
-    
-    return data;
-} catch (error) {
-    console.error("Erro ao carregar total de clientes:", error);
-} finally {
-    console.log("Dados enviados para n8n/Chatwoot:", dadosCampanha);
-    showNotification("Campanha enviada com sucesso!", "success");
-    limparFormulario();
-  } 
-}
-
-
-      // Agendar campanha
-      function agendarCampanha() {
-  const template = document.getElementById("templateDropdown").value;
-  const numero = document.getElementById("numero").value;
-
-  if (!template || !numero) {
-    showNotification(
-      "Por favor, preencha todos os campos obrigatórios",
-      "error"
-    );
-    return;
-  }
-
-  const dadosCampanha = {
-    tipo: "agendamento",
-    template: template,
-    numero: numero,
-    timestamp: new Date().toISOString(),
-    provedor: true,
-  };
-
-  console.log("Campanha agendada:", dadosCampanha);
-  showNotification("Campanha agendada com sucesso!", "success");
-  limparFormulario();
-}
-
-
-      // Salvar rascunho
-      function salvarRascunho() {
-  const dadosRascunho = {
-    template: document.getElementById("templateDropdown").value,
-    numero: document.getElementById("numero").value,
-    busca: document.getElementById("buscarContato").value,
-    timestamp: new Date().toISOString(),
-  };
-
-  sessionStorage.setItem("rascunho_campanha", JSON.stringify(dadosRascunho));
-  showNotification("Rascunho salvo com sucesso!", "success");
-}
-
-
-      function limparFormulario() {
-  document.getElementById("templateDropdown").value = "";
-  document.getElementById("numero").value = "";
-  document.getElementById("buscarContato").value = "";
-  updateDropdownPreview();
-}
-
-
-
-
-      // Ver relatório
-      function verRelatorio(nomeCampanha) {
-        const campanha = campanhas.find((c) => c.nome === nomeCampanha);
-        if (campanha) {
-          document.getElementById(
-            "relatorioTitle"
-          ).textContent = `Relatório - ${nomeCampanha}`;
-          document.getElementById("totalContatos").textContent =
-            campanha.contatos.toLocaleString();
-          document.getElementById("mensagensEnviadas").textContent =
-            campanha.enviados.toLocaleString();
-          document.getElementById("mensagensEntregues").textContent =
-            campanha.entregues.toLocaleString();
-          document.getElementById("respostasRecebidas").textContent =
-            campanha.respostas.toLocaleString();
-          document.getElementById("taxaEntrega").textContent =
-            campanha.enviados > 0
-              ? ((campanha.entregues / campanha.enviados) * 100).toFixed(1) +
-                "%"
-              : "0%";
-          document.getElementById("taxaResposta").textContent =
-            campanha.entregues > 0
-              ? ((campanha.respostas / campanha.entregues) * 100).toFixed(1) +
-                "%"
-              : "0%";
-          document.getElementById("valorTotalCobrado").textContent =
-            "R$ " +
-            campanha.valorTotal.toLocaleString("pt-BR", {
-              minimumFractionDigits: 2,
-=======
-              row.appendChild(cell);
->>>>>>> 027f8b3b3dcfb054901b15858509bc4f3c84ab3a
-            });
+            // se sobrou algo (<11), conta como inválido
+            if (resto > 0) invalidos += 1;
           } else {
-            tabela.style.display = "none"; // esconde se não houver números
-            showNotification(
-              "Nenhum número válido encontrado no arquivo",
-              "warning"
-            );
+            // < 11 dígitos → inválido
+            invalidos += 1;
           }
-        };
-        reader.readAsText(file);
-      } else {
-        showNotification(
-          "Por favor, selecione um arquivo TXT ou CSV válido",
-          "error"
-        );
-      }
+        });
+
+        if (validos.length > 0) {
+          tabela.style.display = "table";
+
+          let row;
+          validos.forEach((numero, index) => {
+            if (index % 5 === 0) {
+              row = document.createElement("tr");
+              tbody.appendChild(row);
+            }
+            const cell = document.createElement("td").setAttribute("id", "row_numeros");
+            cell.textContent = numero;
+            cell.style.cssText = `
+          padding: 2px 4px;
+          border: 1px solid #444;
+          color: #fff;
+          text-align: center;
+          border-radius: 4px;
+        `;
+            row.appendChild(cell);
+          });
+
+          showNotification(
+            `Arquivo processado: ${validos.length} contatos encontrados ✅ • ${invalidos} inválidos descartados ❌`,
+            invalidos ? "warning" : "success"
+          );
+        } else {
+          showNotification("Nenhum número válido encontrado no arquivo", "warning");
+        }
+      };
+
+      reader.readAsText(file);
+
+      // permite reimportar o mesmo arquivo e força o onchange
+      input.value = "";
     }
 
+
+
+
+
     // Enviar campanha
-    function enviarCampanha() {
+    async function enviarCampanha() {
       const template = document.getElementById("templateDropdown").value;
       const numero = document.getElementById("numero").value;
+      const numeros = document.getElementById("row_numeros").value;
       const nome = document.getElementById("buscarContato").value;
+      const account = "3";
+      const selectNunmbers = numero ? numero : numeros;
 
-      if (!template || !numero) {
+      if (!template || !selectNunmbers) {
         showNotification(
           "Por favor, preencha todos os campos obrigatórios",
           "error"
@@ -1728,11 +1530,27 @@ async function enviarCampanha() {
         numero: numero,
         timestamp: new Date().toISOString(),
         provedor: true,
+        account: account,
       };
 
-      console.log("Dados enviados para n8n/Chatwoot:", dadosCampanha);
-      showNotification("Campanha enviada com sucesso!", "success");
-      limparFormulario();
+      try {
+        const response = await fetch("https://webhooks.coraxy.com.br/webhook/disparo_especifico",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(dadosCampanha)
+          }
+        );
+        const data = await response.json();
+
+        return data;
+      } catch (error) {
+        console.error("Erro ao carregar total de clientes:", error);
+      } finally {
+        console.log("Dados enviados para n8n/Chatwoot:", dadosCampanha);
+        showNotification("Campanha enviada com sucesso!", "success");
+        limparFormulario();
+      }
     }
 
 
@@ -1776,6 +1594,174 @@ async function enviarCampanha() {
       showNotification("Rascunho salvo com sucesso!", "success");
     }
 
+    if (template && templates[template]) {
+      let mensagem = templates[template];
+
+      // Encontrar cliente pelo número
+      const cliente = clientes.find((c) => c.numero === numero);
+      const nome = cliente ? cliente.nome : "Cliente";
+      const plano = cliente ? cliente.plano : "Seu Plano";
+      const valor = cliente
+        ? (Number(cliente.valor) || 0).toFixed(2)
+        : "0,00";
+
+      mensagem = mensagem.replace(/{{nome}}/g, nome);
+      mensagem = mensagem.replace(/{{plano}}/g, plano);
+      mensagem = mensagem.replace(/{{valor}}/g, valor);
+
+      preview.textContent = mensagem;
+    } else {
+      preview.textContent =
+        "Selecione um template para visualizar a mensagem";
+    }
+
+
+    // Processar arquivo
+    function processFile(input) {
+      const file = input.files[0];
+      if (
+        file &&
+        (file.type === "text/plain" || file.name.endsWith(".csv"))
+      ) {
+        const reader = new FileReader();
+        const tabela = document.getElementById("tabelaNumeros");
+        const tbody = tabela.querySelector("tbody");
+        tbody.innerHTML = ""; // limpa antes de preencher
+
+        reader.onload = function (e) {
+          const content = e.target.result;
+          const numeros = content
+            .split(/\r?\n/)
+            .filter((linha) => linha.trim());
+
+          if (numeros.length > 0) {
+            tabela.style.display = "table"; // só mostra se tiver número
+            showNotification(
+              `Arquivo processado: ${numeros.length} números encontrados`,
+              "success"
+            );
+
+            let row;
+            numeros.forEach((numero, index) => {
+              if (index % 5 === 0) {
+                // quebra a cada 5 números
+                row = document.createElement("tr");
+                tbody.appendChild(row);
+              }
+              const cell = document.createElement("td").setAttribute("id", "row_numeros");
+              cell.textContent = numero;
+              cell.style.cssText = `
+                        padding:2px 4px;
+                        border:1px solid #444;
+                        color:#fff;
+                        text-align:center;
+                        border-radius:4px;
+                    `;
+              row.appendChild(cell);
+            });
+          } else {
+            tabela.style.display = "none"; // esconde se não houver números
+            showNotification(
+              "Nenhum número válido encontrado no arquivo",
+              "warning"
+            );
+          }
+        };
+        reader.readAsText(file);
+      } else {
+        showNotification(
+          "Por favor, selecione um arquivo TXT ou CSV válido",
+          "error"
+        );
+      }
+    }
+
+    // Enviar campanha
+    async function enviarCampanha() {
+      const template = document.getElementById("templateDropdown").value;
+      const numero = document.getElementById("numero").value;
+      const numeros = document.getElementById("row_numeros").value;
+      const nome = document.getElementById("buscarContato").value;
+      const account = "3";
+      const selectNunmbers = numero ? numero : numeros;
+
+      if (!template || !selectNunmbers) {
+        showNotification(
+          "Por favor, preencha todos os campos obrigatórios",
+          "error"
+        );
+        return;
+      }
+
+      const dadosCampanha = {
+        tipo: "envio_imediato",
+        template: template,
+        numero: numero,
+        timestamp: new Date().toISOString(),
+        provedor: true,
+        account: account,
+      };
+
+      try {
+        const response = await fetch("https://webhooks.coraxy.com.br/webhook/disparo_especifico",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(dadosCampanha)
+          }
+        );
+        const data = await response.json();
+
+        return data;
+      } catch (error) {
+        console.error("Erro ao carregar total de clientes:", error);
+      } finally {
+        console.log("Dados enviados para n8n/Chatwoot:", dadosCampanha);
+        showNotification("Campanha enviada com sucesso!", "success");
+        limparFormulario();
+      }
+    }
+
+
+    // Agendar campanha
+    function agendarCampanha() {
+      const template = document.getElementById("templateDropdown").value;
+      const numero = document.getElementById("numero").value;
+
+      if (!template || !numero) {
+        showNotification(
+          "Por favor, preencha todos os campos obrigatórios",
+          "error"
+        );
+        return;
+      }
+
+      const dadosCampanha = {
+        tipo: "agendamento",
+        template: template,
+        numero: numero,
+        timestamp: new Date().toISOString(),
+        provedor: true,
+      };
+
+      console.log("Campanha agendada:", dadosCampanha);
+      showNotification("Campanha agendada com sucesso!", "success");
+      limparFormulario();
+    }
+
+
+    // Salvar rascunho
+    function salvarRascunho() {
+      const dadosRascunho = {
+        template: document.getElementById("templateDropdown").value,
+        numero: document.getElementById("numero").value,
+        busca: document.getElementById("buscarContato").value,
+        timestamp: new Date().toISOString(),
+      };
+
+      sessionStorage.setItem("rascunho_campanha", JSON.stringify(dadosRascunho));
+      showNotification("Rascunho salvo com sucesso!", "success");
+    }
 
     function limparFormulario() {
       document.getElementById("templateDropdown").value = "";
@@ -1870,18 +1856,21 @@ async function enviarCampanha() {
     }
 
     // Mostrar notificação
-    function showNotification(message, type) {
+    function showNotification(message) {
       const notification = document.getElementById("notification");
+
+      notification.classList.remove("show", "success", "error", "warning");
+      notification.classList.add("notification", "success", "show");
+
       notification.textContent = message;
-      notification.className = `notification ${type} show`;
 
       setTimeout(() => {
-        notification.classList.remove("show"); // aplica o fade out
-        setTimeout(() => {
-          notification.textContent = ""; // limpa o conteúdo
-        }, 600); // tempo do fade
-      }, 10000); // fica 10s visível
+        notification.classList.remove("show");
+      }, 10000);
     }
+
+
+
 
     async function carregarTotalClientes() {
       try {
@@ -1919,9 +1908,10 @@ async function enviarCampanha() {
         console.log("Resposta do update:", result);
 
         showNotification(
-          `Campanha ${concluidaBool ? "finalizada" : "reativada"} com sucesso!`,
-          "success"
+          `📊 Total encontrados: ${totalEncontrados} • ✅ Identificados: ${totalValidos} • ❌ Descartados: ${invalidos}`,
+          "success" // 🔥 força sempre verde
         );
+
 
         await carregarCampanhas(); // recarrega tabela
 
@@ -1931,54 +1921,6 @@ async function enviarCampanha() {
       }
     }
 
-
-    async function editarCampanha(id, concluida) {
-      try {
-        const concluidaBool = Boolean(concluida);
-
-        const res = await fetch("https://workflows.coraxy.com.br/webhook-test/editar_campanha", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            id: Number(id),
-            nome: campanha,
-            template: template
-          })
-        });
-
-        const result = await res.json();
-        console.log("Resposta do update:", result);
-
-        showNotification("Campanha editada com sucesso!", "success");
-
-        await carregarCampanhas(); // recarrega tabela
-
-      } catch (err) {
-        console.error("Erro ao editar campanha:", err);
-        showNotification("Erro ao editar campanha", "error");
-      }
-    }
-
-    function abrirModalEdicao(id, nome, template) {
-      document.getElementById("editTemplateId").value = id;
-      document.getElementById("editTemplateCampanha").value = nome;
-      document.getElementById("editTemplateTemplate").value = template;
-
-      document.getElementById("editarCampanhaModal").style.display = "block";
-      document.body.style.overflow = 'auto';
-    }
-
-    function fecharModalEdicao() {
-      document.getElementById("editarCampanhaModal").style.display = "none";
-    }
-
-    function salvarEdicao() {
-      const id = document.getElementById("editTemplateId").value;
-      const nome = document.getElementById("editTemplateCampanha").value;
-      const template = document.getElementById("editTemplateTemplate").value;
-
-      editarCampanha(id, nome, template);
-    }
 
     async function carregarTotalVencidos() {
       try {
@@ -2078,7 +2020,6 @@ async function enviarCampanha() {
         <td>${formatarData(camp.date_disparo_inicio)}</td>
         <td>${camp.enviados ?? "-"}</td>
         <td>${taxaEntrega}</td>
-        
         <td>
           <button class="btn-small btn-pause"onclick="pausarOuReativarCampanha(${camp.id}, ${!camp.concluida})"
  "false" : "true"})"> ${camp.concluida ? "Reativar" : "Pausar"}</button>
@@ -2088,11 +2029,10 @@ async function enviarCampanha() {
           <button class="btn-small btn-report" onclick="verRelatorio('${camp.id}')">
             Relatório
           </button>
-          <button class="btn-small btn-edit" onclick="abrirModalEdicao('${camp.id}', '${camp.campanha}', '${camp.empresa}', '${camp.template}')">
+          <button class="btn-small btn-edit" onclick="verRelatorio('${camp.id}')">
             Editar
           </button>
         </td>
-      
       `;
           tbody.appendChild(tr);
         });
@@ -2150,6 +2090,52 @@ async function enviarCampanha() {
         tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#f87171;">Erro ao carregar templates</td></tr>`;
       }
     }
+
+    async function carregarHistorico() {
+      const tbody = document.getElementById("historicoTable");
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#aaa;">Carregando…</td></tr>`;
+
+      try {
+        const res = await fetch("https://webhooks.coraxy.com.br/webhook/historico", {
+          method: "GET",
+          headers: { "Content-Type": "application/json" }
+        });
+
+        const data = await res.json();
+        tbody.innerHTML = "";
+
+        if (!data || data.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#aaa;">Nenhum histórico encontrado.</td></tr>`;
+          return;
+        }
+
+        data.forEach((h) => {
+          const dataHora = h.data_cobranca || "-";
+          const cliente = h.nome_cliente || "-";
+          const numero = h.fone || "-";
+          const template = h.templates_env || "-";
+          const status = h.success_cobranca ? "SUCESSO" : "FALHA";
+          const resposta = h.cliente_retornou ? "SIM" : "NÃO";
+          const valorCobrado = h.total_cobrancas != null ? Number(h.total_cobrancas).toLocaleString("pt-BR") : "-";
+
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+        <td>${dataHora}</td>
+        <td>${cliente}</td>
+        <td>${numero}</td>
+        <td>${template}</td>
+        <td><span class="status ${status === "SUCESSO" ? "ativa" : "rejeitado"}">${status}</span></td>
+        <td>${resposta}</td>
+        <td>${valorCobrado}</td>
+      `;
+          tbody.appendChild(tr);
+        });
+      } catch (err) {
+        console.error("Erro ao carregar histórico:", err);
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#f87171;">Erro ao carregar histórico</td></tr>`;
+      }
+    }
+
 
 
 
