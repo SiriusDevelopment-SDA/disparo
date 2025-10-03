@@ -799,6 +799,8 @@ async function carregarTemplatesDropdown() {
   }
 }
 
+
+
 function updateDropdownPreview() {
   const select = document.getElementById("templateDropdown");
   const preview = document.getElementById("messagePreview"); // 👈 agora atualiza o card de baixo
@@ -1013,47 +1015,21 @@ function updateDropdownPreview() {
         <h2>Histórico de Disparos</h2>
         <div class="table-container">
           <table>
-            <thead>
-              <tr>
-                <th>Data/Hora</th>
+      <thead>
+        <tr>
+          <th>Data/Hora</th>
                 <th>Cliente</th>
                 <th>Número</th>
                 <th>Template</th>
                 <th>Status</th>
                 <th>Resposta</th>
                 <th>Valor Cobrado</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>15/12/2024 14:30</td>
-                <td>João Silva</td>
-                <td>+55 11 99999-9999</td>
-                <td>Cobrança Amigável</td>
-                <td><span class="status ativa">Entregue</span></td>
-                <td>Sim</td>
-                <td>R$ 89,90</td>
-              </tr>
-              <tr>
-                <td>15/12/2024 14:29</td>
-                <td>Maria Santos</td>
-                <td>+55 11 88888-8888</td>
-                <td>Promoção Fibra</td>
-                <td><span class="status ativa">Entregue</span></td>
-                <td>Não</td>
-                <td>-</td>
-              </tr>
-              <tr>
-                <td>15/12/2024 14:25</td>
-                <td>Pedro Costa</td>
-                <td>+55 11 77777-7777</td>
-                <td>Cobrança Urgente</td>
-                <td><span class="status ativa">Entregue</span></td>
-                <td>Sim</td>
-                <td>R$ 156,80</td>
-              </tr>
-            </tbody>
-          </table>
+        </tr>
+      </thead>
+      <tbody id="historicoTable">
+        <!-- Os templates serão carregados dinamicamente -->
+      </tbody>
+    </table>
         </div>
       </div>
     </div>
@@ -1892,6 +1868,52 @@ async function carregarTemplates() {
     tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#f87171;">Erro ao carregar templates</td></tr>`;
   }
 }
+
+async function carregarHistorico() {
+  const tbody = document.getElementById("historicoTable");
+  tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#aaa;">Carregando…</td></tr>`;
+
+  try {
+    const res = await fetch("https://webhooks.coraxy.com.br/webhook/historico", {
+      method: "GET",
+      headers: { "Content-Type": "application/json" }
+    });
+
+    const data = await res.json();
+    tbody.innerHTML = "";
+
+    if (!data || data.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#aaa;">Nenhum histórico encontrado.</td></tr>`;
+      return;
+    }
+
+    data.forEach((h) => {
+      const dataHora = h.data_cobranca || "-";
+      const cliente = h.nome_cliente || "-";
+      const numero = h.fone || "-";
+      const template = h.templates_env || "-";
+      const status = h.success_cobranca ? "SUCESSO" : "FALHA";
+      const resposta = h.cliente_retornou ? "SIM" : "NÃO";
+      const valorCobrado = h.total_cobrancas != null ? Number(h.total_cobrancas).toLocaleString("pt-BR") : "-";
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${dataHora}</td>
+        <td>${cliente}</td>
+        <td>${numero}</td>
+        <td>${template}</td>
+        <td><span class="status ${status === "SUCESSO" ? "ativa" : "rejeitado"}">${status}</span></td>
+        <td>${resposta}</td>
+        <td>${valorCobrado}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  } catch (err) {
+    console.error("Erro ao carregar histórico:", err);
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#f87171;">Erro ao carregar histórico</td></tr>`;
+  }
+}
+
 
 
 
